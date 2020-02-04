@@ -1,0 +1,1 @@
+exports.map = require('./map');

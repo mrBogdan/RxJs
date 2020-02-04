@@ -1,85 +1,115 @@
-function map(observable, fn) {
-	observable.subscribe(fn)
-	return new Observable();
-}
+const { Observer } = require('./observer');
 
 function prepareSubscriber(subscriber) {
-		const extendedSubscriber = {};
-		const defaultSubscriber = {
-			next: (value) => { console.log('Next: ', value) },
-			error: (err) => { console.log('Error: ', err) },
-			complete: () => { console.log('Complete') },
-		};
+  const extendedSubscriber = {};
+  const defaultSubscriber = {
+    next: (value) => {
+      console.log('Next: ', value);
+    },
+    error: (err) => {
+      console.log('Error: ', err);
+    },
+    complete: () => {
+      console.log('Complete');
+    },
+  };
 
-		if (!subscriber) return defaultSubscriber;
+  if (!subscriber) return defaultSubscriber;
 
-		if (typeof subscriber === 'function') {
-			extendedSubscriber.next = subscriber;
-		}
+  if (typeof subscriber === 'function') {
+    extendedSubscriber.next = subscriber;
+  }
 
-		return Object.assign({}, defaultSubscriber, extendedSubscriber, subscriber);
+  return Object.assign({}, defaultSubscriber, extendedSubscriber, subscriber);
 }
 
 class Subscriber {
-	constructor(observerOrNext = undefined, error = undefined, compelete = undefined) {
-		this.isStopped = false;
-		this.destination = null;
+  constructor(observerOrNext = undefined, error = undefined, compelete = undefined) {
+    this.isStopped = false;
+    this.destination = null;
+    this.closed = false;
 
-	}
+    switch (arguments.length) {
+      case 0: {
+        this.destination = Observer;
+        break;
+      }
+      case 1: {
+        if (observerOrNext) {
+          this.destination = Object.assign({}, Observer, observerOrNext);
+        }
+        break;
+      }
+      default: {
 
-	static create(next, error, complete) {
-		return new Subscriber(next, error, complete);
-	}
+      }
+    }
+  }
 
-	next(value) {
-		if (!this.isStopped) {
-			this._next(value);
-		}
-	}
+  static create(next, error, complete) {
+    return new Subscriber(next, error, complete);
+  }
 
-	error(error) {
-		if (!this.isStopped) {
-			this.isStopped = true;
-			this._error(error);
-		}
-	}
+  next(value) {
+    if (!this.isStopped) {
+      this._next(value);
+    }
+  }
 
-	complete() {
-		this.isStopped = true;
-		this._complete();
-	}
+  error(error) {
+    if (!this.isStopped) {
+      this.isStopped = true;
+      this._error(error);
+    }
+  }
 
-	_next(value) {}
+  unsubscribe() {
+    if (this.closed) {
+      return;
+    }
 
-	_error(err) {}
+    this.closed = true;
+  }
 
-	_complete() {}
+  complete() {
+    this.isStopped = true;
+    this._complete();
+  }
+
+  _next(value) {
+  }
+
+  _error(err) {
+  }
+
+  _complete() {
+  }
 }
 
 class Observable {
-	constructor(observer){
-		this.observer = observer;
-	}
+  constructor(observer) {
+    this.observer = observer;
+  }
 
-	subscribe(subscriber){
-		return this.observer(prepareSubscriber(subscriber));
-	}
+  subscribe(subscriber) {
+    return this.observer(prepareSubscriber(subscriber));
+  }
 }
 
 const obs = new Observable((subscriber) => {
-	subscriber.next(1);
-	setTimeout(() => {
-		subscriber.next(2);
-	}, 1000);
+  subscriber.next(1);
+  setTimeout(() => {
+    subscriber.next(2);
+  }, 1000);
 
-	subscriber.complete();
+  subscriber.complete();
 
-	return function unsubscribe() {
+  return function unsubscribe() {
 
-	};
+  };
 });
 
 obs
-	.subscribe({
-		next: (val) => console.log('Value: ', val),
-	});
+  .subscribe({
+    next: (val) => console.log('Value: ', val),
+  });
